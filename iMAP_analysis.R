@@ -12,8 +12,7 @@ library("stringr")
 
 library("gridExtra")
 library("ggrepel")
-library("here")
-
+library("here") # not sure if useful
 
 # Loading data ----------------------------------------------------------------------
 dir = here() %>%
