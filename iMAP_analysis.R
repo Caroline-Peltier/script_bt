@@ -9,14 +9,14 @@
 library("plyr")
 library("dplyr")
 library("stringr")
-
+library("factoextra")
 library("gridExtra")
 library("ggrepel")
 library("here") # not sure if useful
 
 # Loading data ----------------------------------------------------------------------
 setwd("./..")
-
+getwd()
 
 # Get population --------------------------------------------------------------------
 df_pop <- read.table("lupil2_populations.txt", 
