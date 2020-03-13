@@ -9,17 +9,14 @@
 library("plyr")
 library("dplyr")
 library("stringr")
-
+library("factoextra")
 library("gridExtra")
 library("ggrepel")
 library("here") # not sure if useful
 
 # Loading data ----------------------------------------------------------------------
-dir = here() %>%
-      paste0("/iMAP_analysis/donnees_iMAP")
-setwd("./donnees_iMAP")
+setwd("./..")
 getwd()
-
 
 # Get population --------------------------------------------------------------------
 df_pop <- read.table("lupil2_populations.txt", 
