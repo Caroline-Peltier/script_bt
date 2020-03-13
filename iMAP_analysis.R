@@ -12,7 +12,7 @@ library("stringr")
 library("factoextra")
 library("gridExtra")
 library("ggrepel")
-library("here") # not sure if useful, maybe
+library("here") # not sure if useful, yes !
 
 # Loading data ----------------------------------------------------------------------
 setwd("./..")
