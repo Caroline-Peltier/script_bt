@@ -18,7 +18,7 @@ library("here")
 # Loading data ----------------------------------------------------------------------
 dir = here() %>%
       paste0("/iMAP_analysis/donnees_iMAP")
-setwd(dir)
+setwd("./donnees_iMAP")
 getwd()
 
 
