@@ -15,10 +15,7 @@ library("ggrepel")
 library("here") # not sure if useful
 
 # Loading data ----------------------------------------------------------------------
-dir = here() %>%
-      paste0("/iMAP_analysis/donnees_iMAP")
-setwd("./donnees_iMAP")
-getwd()
+setwd("./..")
 
 
 # Get population --------------------------------------------------------------------
