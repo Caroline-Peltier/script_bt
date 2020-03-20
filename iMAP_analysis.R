@@ -12,7 +12,8 @@ library("stringr")
 library("factoextra")
 library("gridExtra")
 library("ggrepel")
-library("here") # not sure if useful, yes !
+library("reshape2")
+
 
 # Loading data ----------------------------------------------------------------------
 setwd("./..")
@@ -34,8 +35,10 @@ paper_subjects <- df_pop[df_pop[,"Paper"] == T,"Subject"]
 
 # Get Cytometrie Panels data --------------------------------------------------------
 # Initialize the df
-df_cytometrie = data.frame(paper_subjects) %>%
-                dplyr::rename(Subject = paper_subjects)
+df_cytometrie <- data.frame(paper_subjects) %>%
+                 dplyr::rename(Subject = paper_subjects)
+
+
 
 # Collect data from the different panels
 panel_ids <- c("02","03","08","09","10","12","13")
@@ -50,6 +53,19 @@ for (id in panel_ids){
 df_cytometrie <- arrange(df_cytometrie, Subject, Visit)
 summary(df_cytometrie)
 
+# Names of the cytometrie numerical variables 
+varnum_cytometrie <- df_cytometrie %>%
+                     select(-c("Subject","Visit")) %>%
+                     colnames()
+                
+# Long cytometrie data frame      
+lg_cytometrie <- melt(data = df_cytometrie, id.vars = c("Subject", "Visit")) %>%
+                 join(df_pop[,c("Subject","ARM","Responder")]) %>%
+                 arrange(Subject,Visit)
+lg_cytometrie["Panel"] <- lg_cytometrie$variable %>%
+                          as.vector() %>%
+                          strsplit(split = "_P") %>%
+                          sapply("[[",1)
 
 # Get Cytokine data ------------------------------------------------------------------
 file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2impnorm_20191022.csv"
@@ -72,12 +88,25 @@ df_cytokine <- df_cytokine[-1] %>%
                subset(Subject %in% paper_subjects) %>%
                arrange(Subject, Visit)
 
+# Name of the cytokine numerical variables
+varnum_cytokine <- df_cytokine %>%
+                   select(-c("Subject","Visit")) %>%
+                   colnames()
+
+
 # Remove the Outlier
 df_cytokine <- df_cytokine[,"Subj_id" != 90]
 
 summary(df_cytokine)
 
 
+
+
+
+# Long cytokine data frame
+lg_cytokine <- melt(data = df_cytokine, id.vars = c("Subject", "Visit")) %>%
+               join(df_pop[,c("Subject","ARM","Responder")]) %>%
+               arrange(Subject,Visit)
 
 
 
