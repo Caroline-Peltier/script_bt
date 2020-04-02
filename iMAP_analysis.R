@@ -9,10 +9,12 @@
 library("plyr")
 library("dplyr")
 library("stringr")
+library("ggplot2")
 library("factoextra")
 library("gridExtra")
 library("ggrepel")
 library("reshape2")
+library("RGCCA")
 
 
 # Loading data ----------------------------------------------------------------------
@@ -24,9 +26,12 @@ df_pop <- read.table("lupil2_populations.txt",
                      header=TRUE, sep="\t") %>%
           dplyr::rename(Subject = SUBJID) %>%
           arrange(Subject)
-df_pop["Subj_id"] <- rownames(df_pop)
-df_pop["Establishment"] <- substr(df_pop$Subject,1,3) %>%
-                           as.factor()
+
+# Add quality of life columns
+df_pop["Subj_id"]    <- factor(row.names(df_pop))
+df_pop["Country_id"] <- substr(df_pop$Subject,1,3) %>%
+                        as.factor()
+
 summary(df_pop)
 
 # Extract paper subjects
@@ -55,11 +60,12 @@ summary(df_cytometrie)
 
 # Names of the cytometrie numerical variables 
 varnum_cytometrie <- df_cytometrie %>%
-                     select(-c("Subject","Visit")) %>%
+                     select_if(is.numeric) %>%
                      colnames()
                 
 # Long cytometrie data frame      
 lg_cytometrie <- melt(data = df_cytometrie, id.vars = c("Subject", "Visit")) %>%
+                 na.omit() %>%
                  join(df_pop[,c("Subject","ARM","Responder")]) %>%
                  arrange(Subject,Visit)
 lg_cytometrie["Panel"] <- lg_cytometrie$variable %>%
@@ -68,12 +74,12 @@ lg_cytometrie["Panel"] <- lg_cytometrie$variable %>%
                           sapply("[[",1)
 
 # Get Cytokine data ------------------------------------------------------------------
-file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2impnorm_20191022.csv"
+file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2imp_20191022.csv"
 df_cytokine <- read.table(file_cytokine,
                           header=TRUE, sep=",")
 
 # Extracting Subject id and visit id
-id <- as.vector(df_cytokine[,1])
+id <- as.vector(df_cytokine[,"X"])
 id <- strsplit(id,"V")
 subject <- sapply(id, "[[", 1)
 subject <- str_pad(subject, 9, "left", "0") 
@@ -90,9 +96,16 @@ df_cytokine <- df_cytokine[-1] %>%
 
 # Name of the cytokine numerical variables
 varnum_cytokine <- df_cytokine %>%
-                   select(-c("Subject","Visit")) %>%
+                   select_if(is.numeric) %>%
                    colnames()
 
+# Remove cols that have a HS equivalent
+badcols <- varnum_cytokine[grepl('HS',varnum_cytokine)] %>%
+           substring(3)
+df_cytokine[,c(badcols)] <- list(NULL)
+varnum_cytokine <- df_cytokine %>%
+                   select_if(is.numeric) %>%
+                   colnames()
 
 # Remove the Outlier
 df_cytokine <- df_cytokine[,"Subj_id" != 90]
@@ -101,10 +114,9 @@ summary(df_cytokine)
 
 
 
-
-
 # Long cytokine data frame
 lg_cytokine <- melt(data = df_cytokine, id.vars = c("Subject", "Visit")) %>%
+               na.omit() %>%
                join(df_pop[,c("Subject","ARM","Responder")]) %>%
                arrange(Subject,Visit)
 
@@ -113,32 +125,6 @@ lg_cytokine <- melt(data = df_cytokine, id.vars = c("Subject", "Visit")) %>%
 # Analyzing data ---------------------------------------------------------------------
 
 # PCA --------------------------------------------------------------------------------
-
-# Function to plot infos related to pca of the previously constructed df
-pca_iMAP <- function(df,category = "Responder"){
-  # Compute pca
-  pca<- select(df, - c("Subject","Visit")) %>%
-        na.omit() %>%
-        prcomp(scale. = TRUE)
-  # Info on whether a subject is responder or not
-  groups <- na.omit(df) %>%
-            join(df_pop) %>%
-            select(category)
-  # Create the different plots
-  eig <- fviz_eig(pca)
-  ind <- fviz_pca_ind(pca,
-                      col.ind = groups[,1])
-  var <- fviz_pca_var(pca)
-                      # select.var = list(c(contrib = 1,"IL.2")))
-  # Organize the different plots
-  plots <- list(eig,ind,var)
-  lay   <- rbind(c(1,1),
-                 c(2,3))
-  grid.arrange(grobs = plots,
-               layout_matrix = lay)
-  
-  return(pca)
-}
 
 # More PCA info
 main_contrib <- function(df, pca, n, add_il2 = FALSE){
@@ -159,11 +145,6 @@ main_contrib <- function(df, pca, n, add_il2 = FALSE){
 }
 
 
-# Cytometrie PCA
-pca_iMAP(df_cytometrie)
-
-# Cytokine PCA
-pca_cytokine <- pca_iMAP(df_cytokine,"Establishment")
 
 main_contrib(df_cytokine,pca_cytokine,0,TRUE)
 
@@ -178,22 +159,11 @@ t.test(df_cytokine[,var_1])
 hist(df_cytokine[,var_1],
      xlab = var_1)
 
-# Per visit pca
-# visits <- levels(df_cytokine$Visit)
-visits <- "V05"
-for (visit in visits){
-  filter <- df_cytokine$Visit == visit
-  data <- df_cytokine[filter,]
-  row.names(data) <- join(data,df_pop)[,"Subj_id"]
-  pca_iMAP(data)
-  contrib_dim1 <- get_pca_var(pca_cytokine)$contrib[,1] %>%
-                  sort(decreasing = TRUE)
-}
-
 
 # Analyse monovariée
 # Plot Cytokine data distribution
-vars <- select(df_cytokine, -c("Subject","Visit")) %>%
+vars <- df_cytokine %>%
+        select_if(is.numeric) %>%
         colnames() %>%
         reorder(contrib_dim1)
 for (var in vars){
@@ -207,9 +177,9 @@ for (var in vars){
 }
 
 # Plot Means
-mean <- select(df_cytokine,vars) %>%
+mean <- df_cytokine[,vars] %>%
         colMeans(na.rm = TRUE)
-sem  <- select(df_cytokine,vars) %>%
+sem  <- df_cytokine[,vars] %>%
         apply(2,sd,na.rm = TRUE)
 p <- join(df_cytokine,df_pop)[,c(vars,"Responder")] %>%
      ggplot() +
@@ -222,3 +192,148 @@ p <- join(df_cytokine,df_pop)[,c(vars,"Responder")] %>%
      theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
      ggtitle("Cytokine data (Mean and SEM)")
 p
+
+
+# Preliminary Functions --------------------------------------------------------------
+
+# Prepare data 
+get_data <- function(df, varnum, visit, crit){
+  
+  dat <- df[df$Visit == visit,] %>%
+         join(df_pop[,c("Subject", crit, "Subj_id")]) %>%
+         dplyr::select(c(varnum, crit, "Subj_id"))
+  row.names(dat) <- dat$Subj_id
+  dat$Subj_id <- NULL
+  
+  return(dat)
+}
+
+#PCA
+plot_pca <- function(dat, varnum, crit, cols){
+  
+  pca <- dat[,varnum] %>%
+         na.omit() %>%
+         prcomp( scale = TRUE)
+  
+  group <- dat %>%
+           na.omit() %>%
+           dplyr::select(crit)
+  
+  eig <- fviz_eig(pca)
+  
+  ind <- fviz_pca_ind(pca,
+                      col.ind = group[,1]) +
+         scale_color_manual(values = cols)
+  
+  var <- fviz_pca_var(pca,
+                      select.var = list(contrib = 5),
+                      repel = TRUE)
+  print(eig)
+  print(ind)
+  print(var)
+  
+  return(pca)
+}
+
+# t.test
+plot_t.test <- function(dat, varnum, crit, pval.max, cols){
+  
+  y = dat[,crit]
+  
+  i = 0
+  vars = c()
+  for (var in varnum){
+    x = dat[,var]
+    
+    t <- t.test(x ~ y)
+    pval = t$p.value
+    
+    if (pval < pval.max){
+      i <- i+1
+      vars[[i]] <- var
+      
+      bp <- ggplot(data = dat, aes(x = y, y = x, fill = y)) + 
+        geom_boxplot() +
+        geom_dotplot(binaxis = 'y', stackdir = 'center', dotsize = 1.5, color = "white", alpha = 0.4) +
+        labs(title = var, y = "", 
+             x = paste("Student test pval =", pval)) +
+        theme_classic() +
+        scale_fill_manual(values = cols)
+      print(bp)
+    }
+    
+  }
+  
+  return(vars)
+}
+
+
+# PLS DA
+plot_pls <- function(dat, varnum, crit){
+  
+  group <- dat[,crit]; names(group) <- rownames(dat)
+  y <- data.frame(model.matrix( ~  group-1, data = group))
+  blocks <- list(x = dat[,varnum], y = y)
+  pls <-rgcca(block = blocks, ncomp = c(3,1), type = "pls")
+  
+  plot(pls, i_block=1, type="both", resp = group, compx = 1, compy = 2)
+}
+
+
+# Cytokine --------------------------------------------------------------------------
+
+# Visit V01 : Predict Responder -----------------------------------------------------
+
+#Set-up parameters
+df       <- df_cytokine
+varnum   <- varnum_cytokine
+pval.max <- 0.05/length(varnum)
+visit    <- "V01"
+crit     <- "Responder"
+cols     <- c("#FF3333", "#00CC00")
+
+# Get appropriate data
+dat <- get_data(df, varnum, visit , crit)
+
+#PCA
+pca <- plot_pca(dat, varnum, crit, cols)
+
+dat_90 <- dat[which(rownames(dat) != "90"),]
+
+pca_90 <- plot_pca(dat_90, varnum, crit, cols)
+  
+#t.test and boxplot if pval significant
+plot_t.test(dat, varnum, crit, pval.max, cols)
+
+
+# Visit V05 - V01 : Predict Placebo ---------------------------------------------------
+
+#Set-up parameters
+df <- df_cytokine
+varnum <- varnum_cytokine
+crit <- "ARM"
+cols <- c("#0066CC", "#99CCFF")
+pval.max <- 0.05/(length(varnum))
+
+dat1 <- get_data(df, varnum, "V01", crit)
+dat5 <- get_data(df, varnum, "V05", crit)
+dat  <- dat5
+dat[,varnum] <- dat5[,varnum] - dat1[,varnum]
+
+#PCA
+pca <- plot_pca(dat, varnum, crit, cols)
+
+
+#t.test and boxplot if pval < .05 / 62
+plot_t.test(dat, varnum, crit, pval.max, cols)
+
+
+#PLS
+plot_pls(dat, varnum, crit)
+
+# ------------------------------------------------------------------------------------
+resp <- dat_cytokine_ev5$ARM; names(resp) <- rownames(dat_cytokine_ev5)
+reponse <- data.frame(model.matrix( ~  resp-1, data=resp))
+blocks <- list(df_cytokine[,varnum_cytokine],df_cytometrie[,varnum_cytometrie], reponse = reponse)
+resRgcca=rgcca(block = blocks,ncomp=c(3,1),type="rgcca")
+plot(resRgcca,i_block=1,type="both",resp = resp,compx = 1, compy = 2)
