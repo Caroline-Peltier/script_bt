@@ -1,4 +1,5 @@
 # iMAP Analysis // Bosco TADDEI
+
 library("plyr")
 library("dplyr")
 library("stringr")
@@ -7,11 +8,12 @@ library("gridExtra")
 library("ggrepel")
 library("reshape2")
 
-source("functionForNAAnalysis.r")
+
 # This script is analyzing cytokine and cytometric data
 # collected from patient treated for lupus.
 # Getting dataframes --------------------------------------------------------------------
-df_pop <- read.table("lupil2_populations.txt", 
+source("functionForNAAnalysis.r")
+df_pop <- read.table("../lupil2_populations.txt", 
                      header=TRUE, sep="\t") %>%
           dplyr::rename(Subject = SUBJID) %>%
           arrange(Subject)
@@ -34,7 +36,7 @@ df_cytometrie <- data.frame(paper_subjects) %>%
 panel_ids<- c("01_norm","02_norm","03_norm","04_norm","05_norm","08_norm","09_norm","10_norm","12_norm")
 
 for (id in panel_ids){
-  file_panel = paste0("lupilCytometrie/Panel_", id, ".txt")
+  file_panel = paste0("../lupilCytometrie/Panel_", id, ".txt")
   panel <- read.table(file_panel,
                       header=TRUE, sep="\t") %>%
            dplyr::rename(Subject = Sample.name)
@@ -66,7 +68,7 @@ lg_cytometrie["Panel"] <- lg_cytometrie$variable %>%
                           sapply("[[",1)
 
 # Get Cytokine data ------------------------------------------------------------------
-file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2impnorm_20191022.csv"
+file_cytokine <- "../Lupil2_cytokines_191105/lupil2_conc_log2impnorm_20191022.csv"
 df_cytokine <- read.table(file_cytokine,
                           header=TRUE, sep=",")
 
@@ -99,6 +101,21 @@ df_cytokine_wo90 <- df_cytokine[,"Subj_id" != 90]
 summary(df_cytokine)
 
 
+for(i in 1:75)
+{ 
+  df_cytokine=as.data.frame(df_cytokine)
+  means=mean(df_cytokine[df_cytokine[,"Subject"]!="010-001-033" &df_cytokine[,"Visit"]=="V01" ,i],na.rm=T)
+  sds=sd(df_cytokine[df_cytokine[,"Subject"]!="010-001-033" &df_cytokine[,"Visit"]=="V01" ,i],na.rm=T)
+  score_suj=df_cytokine[df_cytokine[,"Subject"]=="010-001-033" &df_cytokine[,"Visit"]=="V01" ,][,i]
+  if(abs(score_suj-means)>3*sds)
+  {
+    print(colnames(df_cytokine)[i])
+ #   print(score_suj)
+   # print(means)
+   # print(sds)
+  }
+}  
+
 # Long cytokine data frame
 lg_cytokine <- melt(data = df_cytokine, id.vars = c("Subject", "Visit")) %>%
                join(df_pop[,c("Subject","ARM","Responder")]) %>%
@@ -115,7 +132,7 @@ dfList=list(cytometrie=df_cytometrie, cytokine=df_cytokine)
 selection=list(cytometrie=varnum_cytometrie,cytokine=varnum_cytokine)
 produceHtmlMissingByBlock(dfList,selection)
 
-
+produceHtmlMissingByVisit()
 # Plotting compositional data
 dfList[1,]
 
