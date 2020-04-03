@@ -1,5 +1,5 @@
-# iMAP Analysis // Bosco TADDEI
-
+# Loading libraries
+#---------------------
 library("plyr")
 library("dplyr")
 library("stringr")
@@ -8,11 +8,14 @@ library("gridExtra")
 library("ggrepel")
 library("reshape2")
 
-
-# This script is analyzing cytokine and cytometric data
-# collected from patient treated for lupus.
-# Getting dataframes --------------------------------------------------------------------
+# Sourcing external functions (you should be in script_bt)
+#-------------------------------------------------------
 source("functionForNAAnalysis.r")
+
+
+# Getting dataframes 
+#--------------------------------
+
 df_pop <- read.table("../lupil2_populations.txt", 
                      header=TRUE, sep="\t") %>%
           dplyr::rename(Subject = SUBJID) %>%
@@ -33,8 +36,10 @@ df_cytometrie <- data.frame(paper_subjects) %>%
 
 # Collect data from the different panels
 #panel_ids <- c("02","03","08","09","10","12","13")
-panel_ids<- c("01_norm","02_norm","03_norm","04_norm","05_norm","08_norm","09_norm","10_norm","12_norm")
 
+#---> Here I replaced by the new panels, I also changed the path in file_panel
+panel_ids<- c("01_norm","02_norm","03_norm","04_norm","05_norm","08_norm","09_norm","10_norm","12_norm")
+#----
 for (id in panel_ids){
   file_panel = paste0("../lupilCytometrie/Panel_", id, ".txt")
   panel <- read.table(file_panel,
@@ -95,24 +100,23 @@ varnum_cytokine <- df_cytokine %>%
 
 
 # Remove the Outlier
-
 df_cytokine_wo90 <- df_cytokine[,"Subj_id" != 90]
 
 summary(df_cytokine)
 
-
-for(i in 1:75)
+# Searching where the subject 010-001-033 is strange ?
+for(i in 1:75) #loop on the attributes
 { 
   df_cytokine=as.data.frame(df_cytokine)
+  #Calculation of the mean of the others for this attribute
   means=mean(df_cytokine[df_cytokine[,"Subject"]!="010-001-033" &df_cytokine[,"Visit"]=="V01" ,i],na.rm=T)
+  # Calculation of the standard deviations of the others
   sds=sd(df_cytokine[df_cytokine[,"Subject"]!="010-001-033" &df_cytokine[,"Visit"]=="V01" ,i],na.rm=T)
+  # Score of the subject
   score_suj=df_cytokine[df_cytokine[,"Subject"]=="010-001-033" &df_cytokine[,"Visit"]=="V01" ,][,i]
   if(abs(score_suj-means)>3*sds)
   {
     print(colnames(df_cytokine)[i])
- #   print(score_suj)
-   # print(means)
-   # print(sds)
   }
 }  
 
@@ -121,23 +125,20 @@ lg_cytokine <- melt(data = df_cytokine, id.vars = c("Subject", "Visit")) %>%
                join(df_pop[,c("Subject","ARM","Responder")]) %>%
                arrange(Subject,Visit)
 
-
-
 # Analyzing data ---------------------------------------------------------------------
 library(RGCCA)
 visits=union(unique(df_cytometrie[,"Visit"]),unique(df_cytokine[,"Visit"]))
 pop_2=df_pop[df_pop[,"Subject"]%in%paper_subjects,]
-# Deux repetitions pour le patient 003-006-003 :lignes 8 et 9
+# Deux repetitions pour le patient 003-006-003 :lignes 8 et 9 /!\ plus vrai pour nouvelles données
 dfList=list(cytometrie=df_cytometrie, cytokine=df_cytokine)
+# Producing html for missing data analysis
 selection=list(cytometrie=varnum_cytometrie,cytokine=varnum_cytokine)
 produceHtmlMissingByBlock(dfList,selection)
-
 produceHtmlMissingByVisit()
-# Plotting compositional data
-dfList[1,]
 
 
 
+#----- Code from the net for multilayer pieplots
 # using your data
 df <- structure(list(Animal = structure(c(2L, 2L, 2L, 2L, 2L, 2L, 2L,
                                           2L, 2L, 2L, 2L, 1L, 1L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L, 3L), .Label = c("Buffalo",
@@ -169,8 +170,9 @@ Third <- Second + geom_bar(data=df1, aes(x=3, y=Animal, fill=Name),
 Fourth <- Third + geom_bar(data=df1,aex(x=4,y))
 
 Third + coord_polar('y')
+#---- End  of the code
 
-# Example for panel 2
+# Test for panel 2
 file_panel = paste0("lupilCytometrie/Panel_", panel_ids[2], ".txt")
 panel <- read.table(file_panel,
                     header=TRUE, sep="\t") %>%
