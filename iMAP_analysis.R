@@ -383,7 +383,7 @@ pca <- plot_pca(dat,varnum, crit, cols)
 plot_w.test(dat, crit, 0.1, cols)
 
 # Visit V05 - V01 : Predict Placebo ---------------------------------------------------
-# 63 - 95
+
 #Set-up parameters
 crit <- "ARM"
 cols <- c("#0066CC", "#99CCFF")
