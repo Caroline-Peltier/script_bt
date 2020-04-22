@@ -272,14 +272,14 @@ plot_w.test <- function(dat, crit, pval.max, cols){
 }
 
 # PLS DA
-plot_pls <- function(dat, varnum, crit){
+plot_pls <- function(dat, varnum, crit, type = "both", compx = 1, n_mark = 10){
   
   group <- dat[,crit]; names(group) <- rownames(dat)
   y <- data.frame(model.matrix( ~  group-1, data = group))
   blocks <- list(x = dat[,varnum], y = y)
   pls <-rgcca(block = blocks, ncomp = c(3,1), type = "pls")
   
-  plot(pls, i_block=1, type="both", resp = group, compx = 1, compy = 2)
+  plot(pls, i_block=1, type=type, resp = group, compx = compx, compy = 2,n_mark = n_mark)
 }
 
 
@@ -345,6 +345,8 @@ pca_pcb <- plot_pca(dat_pcb,varnum, crit, cols)
 plot_w.test(dat_IL2, crit, 0.05, cols)
 plot_w.test(dat_pcb, crit, 0.05, cols)
 
+plot_pls(dat_IL2)
+
 # Evolution from baseline ----------------------------------------------------------
 
 #Set-up parameters
@@ -366,7 +368,7 @@ plot_t.test(dat, crit, pval.max, cols)
 
 
 #PLS
-plot_pls(dat, varnum, crit)
+plot_pls(dat_IL2, varnum, crit, type = "cor", 2)
 
 
 
