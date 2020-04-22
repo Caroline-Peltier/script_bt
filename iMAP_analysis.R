@@ -183,6 +183,7 @@ get_data <- function(df, visit, crit){
   return(dat)
 }
 
+#Compute the difference of 2 dat
 dat_diff <- function(dat1, dat2){
   
   rows   <- intersect(rownames(dat1),rownames(dat2))
@@ -311,6 +312,8 @@ plot_pls <- function(dat, cols = NULL, type = "both", compx = 1, n_mark = 10){
   pls <-rgcca(block = blocks, ncomp = c(3,1), type = "pls")
   
   plot(pls, i_block=1, type=type, resp = group, compx = compx, compy = 2,n_mark = n_mark,colors = cols)
+  
+  return(pls)
 }
 
 
