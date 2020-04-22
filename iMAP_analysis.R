@@ -170,7 +170,9 @@ drop_nul_var <- function(df){
 # Analysis Functions -----------------------------------------------------------------
 
 # Prepare data 
-get_data <- function(df, varnum, visit, crit){
+get_data <- function(df, visit, crit){
+  
+  varnum <- get_varnum(df)
   
   dat <- df[df$Visit == visit,] %>%
          join(df_clini[,c("Subject", crit, "Subj_id")]) %>%
@@ -182,7 +184,10 @@ get_data <- function(df, varnum, visit, crit){
 }
 
 #PCA
-plot_pca <- function(dat, varnum, crit, cols, scale = TRUE){
+plot_pca <- function(dat, cols, scale = TRUE){
+  
+  varnum <- get_varnum(dat)
+  crit   <- get_crit(dat)
   
   pca <- dat[,varnum] %>%
          na.omit() %>%
@@ -211,11 +216,12 @@ plot_pca <- function(dat, varnum, crit, cols, scale = TRUE){
 }
 
 # t.test
-plot_t.test <- function(dat, crit, pval.max, cols){
+plot_t.test <- function(dat, pval.max, cols){
   
   varnum <- dat %>%
             drop_nul_var() %>%
             get_varnum()
+  crit   <- get_crit(dat)
   y <- dat[,crit]
       
   i <- 0
@@ -246,11 +252,12 @@ plot_t.test <- function(dat, crit, pval.max, cols){
 }
 
 #Plot Wilcoxon test
-plot_w.test <- function(dat, crit, pval.max, cols){
+plot_w.test <- function(dat, pval.max, cols){
   
   varnum <- dat %>%
             drop_nul_var() %>%
             get_varnum()
+  crit   <- get_crit(dat)
   y <- dat[,crit]
   
   i <- 0
@@ -281,7 +288,10 @@ plot_w.test <- function(dat, crit, pval.max, cols){
 }
 
 # PLS DA
-plot_pls <- function(dat, varnum, crit, type = "both", compx = 1, n_mark = 10){
+plot_pls <- function(dat, type = "both", compx = 1, n_mark = 10){
+  
+  varnum <- get_varnum(dat)
+  crit   <- get_crit(dat)
   
   group <- dat[,crit]; names(group) <- rownames(dat)
   y <- data.frame(model.matrix( ~  group-1, data = group))
@@ -334,11 +344,11 @@ lg_df <- make_long(df,c("Responder","ARM")) %>%
 #Set-up parameters
 pval.max <- 0.05/length(varnum)
 visit    <- "V05"
-crit     <- c("Responder")
+crit     <- c("Responder","ARM")
 cols     <- c("#FF3333", "#00CC00")
 
 # Get appropriate data
-dat <- get_data(df, varnum, visit , c("Responder","ARM"))
+dat <- get_data(df, visit, crit)
 
 
 dat_IL2 <- dat[dat$ARM == "ILT-101",]
@@ -347,12 +357,13 @@ dat_pcb <- dat[dat$ARM == "Placebo",]
 dat_pcb$ARM <- NULL          
 
 #PCA
-pca_IL2 <- plot_pca(dat_IL2,varnum, crit, cols)
-pca_pcb <- plot_pca(dat_pcb,varnum, crit, cols)
+pca_IL2 <- plot_pca(dat_IL2, cols)
+pca_pcb <- plot_pca(dat_pcb, cols)
+
 
 #t.test and boxplot if pval significant
-plot_w.test(dat_IL2, crit, 0.05, cols)
-plot_w.test(dat_pcb, crit, 0.05, cols)
+plot_w.test(dat_IL2, 0.05, cols)
+plot_w.test(dat_pcb, 0.05, cols)
 
 plot_pls(dat_IL2)
 
@@ -401,10 +412,10 @@ maxi <- dat[,varnum] %>%
 mins <- colnames(subj[, subj == mini])
 maxs <- colnames(subj[, subj == maxi])
 
-for (var in mins){
-  data <- df_cytokine[, var]
+for (variable in mins){
+  data <- df_cytokine[, variable]
   hist(data,
-       main = paste("Histogram of", var, "V01"),
+       main = paste("Histogram of", variable, "V01"),
        xlab = var,
        col = "cadetblue3")
 }
