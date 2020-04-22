@@ -103,6 +103,15 @@ get_varnum <- function(df){
   return(varnum)
 }
 
+get_crit <- function(dat){
+  
+  crit <- dat %>%
+          select_if(is.factor) %>%
+          colnames()
+  
+  return(crit)
+}
+
 # Long data frame      
 make_long <- function(df,crits){
   
