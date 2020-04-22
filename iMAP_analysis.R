@@ -183,6 +183,18 @@ get_data <- function(df, visit, crit){
   return(dat)
 }
 
+dat_diff <- function(dat1, dat2){
+  
+  rows   <- intersect(rownames(dat1),rownames(dat2))
+  varnum <- get_varnum(dat1)
+  
+  dat <- dat1[rows,]
+  dat[,varnum] <- dat[,varnum] - dat2[rows,varnum]
+  
+  return(dat)
+  
+}
+
 #PCA
 plot_pca <- function(dat, cols, scale = TRUE){
   
@@ -288,7 +300,7 @@ plot_w.test <- function(dat, pval.max, cols){
 }
 
 # PLS DA
-plot_pls <- function(dat, type = "both", compx = 1, n_mark = 10){
+plot_pls <- function(dat, cols = NULL, type = "both", compx = 1, n_mark = 10){
   
   varnum <- get_varnum(dat)
   crit   <- get_crit(dat)
@@ -298,7 +310,7 @@ plot_pls <- function(dat, type = "both", compx = 1, n_mark = 10){
   blocks <- list(x = dat[,varnum], y = y)
   pls <-rgcca(block = blocks, ncomp = c(3,1), type = "pls")
   
-  plot(pls, i_block=1, type=type, resp = group, compx = compx, compy = 2,n_mark = n_mark)
+  plot(pls, i_block=1, type=type, resp = group, compx = compx, compy = 2,n_mark = n_mark,colors = cols)
 }
 
 
@@ -374,10 +386,9 @@ crit <- "ARM"
 cols <- c("#0066CC", "#99CCFF")
 pval.max <- 0.05/(length(varnum))
 
-dat1 <- get_data(df, varnum, "V01", c("Responder","ARM"))
-dat5 <- get_data(df, varnum, "V09", c("Responder","ARM"))
-dat  <- dat5
-dat[,varnum] <- dat5[,varnum] - dat1[,varnum]
+dat1 <- get_data(df, "V01", c("Responder","ARM"))
+dat5 <- get_data(df, "V09", c("Responder","ARM"))
+dat  <- dat_diff(dat5,dat1)
 
 #PCA
 pca <- plot_pca(dat, varnum, crit, cols)
