@@ -44,7 +44,7 @@ get_clini <- function(){
 }
 
 # Get Cytometrie Panels data 
-get_cytometrie <- function(subjects, panels){
+get_cytometrie <- function(subjects = paper_subjects, panels = all_panels){
   
   # Initialize the df
   df <- data.frame(paper_subjects) %>%
@@ -284,7 +284,7 @@ plot_pls <- function(dat, varnum, crit){
 
 
 
-# Clinical set up  -----------------------------------------------------------------
+# Load Clinical data -----------------------------------------------------------------
 
 df_clini <- get_clini()
 
@@ -294,7 +294,7 @@ paper_subjects <- df_clini[df_clini[,"Paper"] == T,"Subject"]
 
 
 
-# Cytokine analysis -----------------------------------------------------------------
+# Load Cytokine data -----------------------------------------------------------------
 
 # General Setup
 df <- get_cytokine() %>%
@@ -306,58 +306,13 @@ varnum <- get_varnum(df)
 lg_df <- make_long(df,c("Responder","ARM"))
 
 
-# Visit V01 : Predict Responder -----------------------------------------------------
 
-#Set-up parameters
-pval.max <- 0.05/length(varnum)
-visit    <- "V01"
-crit     <- "Responder"
-cols     <- c("#FF3333", "#00CC00")
-
-# Get appropriate data
-dat <- get_data(df, varnum, visit , crit)
-
-#PCA
-pca <- plot_pca(dat, varnum, crit, cols)
-
-dat_90 <- dat[which(rownames(dat) != "90"),]
-
-pca_90 <- plot_pca(dat_90, varnum, crit, cols)
-
-#t.test and boxplot if pval significant
-plot_w.test(dat, crit, pval.max, cols)
-
-plot_pls(dat_90,varnum,crit)
-
-# Visit V05 - V01 : Predict Placebo --------------------------------------------------
-crit <- "ARM"
-cols <- c("#0066CC", "#99CCFF")
-pval.max <- 0.05/(length(varnum))
-
-dat1 <- get_data(df, varnum, "V01", crit)
-dat5 <- get_data(df, varnum, "V05", crit)
-dat  <- dat5
-dat[,varnum] <- dat5[,varnum] - dat1[,varnum]
-
-#PCA
-pca <- plot_pca(dat, varnum, crit, cols)
-
-
-#t.test and boxplot if pval < .05 / 62
-plot_w.test(dat, crit, pval.max, cols)
-
-
-#PLS
-plot_pls(dat, varnum, crit)
-
-
-
-# Cytometrie analysis ----------------------------------------------------------------
+# Load Cytometrie data ---------------------------------------------------------------
 
 #General Set up
-panel_ids <- c("01","02","03","04","05","08","09","10","12")
+all_panels <- c("01","02","03","04","05","08","09","10","12")
 
-df <- get_cytometrie(paper_subjects, panel_ids)
+df <- get_cytometrie()
 
 varnum <- get_varnum(df)
 
@@ -365,32 +320,40 @@ lg_df <- make_long(df,c("Responder","ARM")) %>%
          manage_panel()
 
 
-# Visit V01 : Predict Responder ------------------------------------------------------
+# Per time point analysis -----------------------------------------------------------
 
 #Set-up parameters
 pval.max <- 0.05/length(varnum)
-visit    <- "V01"
-crit     <- "Responder"
+visit    <- "V05"
+crit     <- c("Responder")
 cols     <- c("#FF3333", "#00CC00")
 
 # Get appropriate data
-dat <- get_data(df, varnum, visit , crit)
+dat <- get_data(df, varnum, visit , c("Responder","ARM"))
+
+
+dat_IL2 <- dat[dat$ARM == "ILT-101",]
+dat_IL2$ARM <- NULL
+dat_pcb <- dat[dat$ARM == "Placebo",]
+dat_pcb$ARM <- NULL          
 
 #PCA
-pca <- plot_pca(dat,varnum, crit, cols)
+pca_IL2 <- plot_pca(dat_IL2,varnum, crit, cols)
+pca_pcb <- plot_pca(dat_pcb,varnum, crit, cols)
 
 #t.test and boxplot if pval significant
-plot_w.test(dat, crit, 0.1, cols)
+plot_w.test(dat_IL2, crit, 0.05, cols)
+plot_w.test(dat_pcb, crit, 0.05, cols)
 
-# Visit V05 - V01 : Predict Placebo ---------------------------------------------------
+# Evolution from baseline ----------------------------------------------------------
 
 #Set-up parameters
 crit <- "ARM"
 cols <- c("#0066CC", "#99CCFF")
 pval.max <- 0.05/(length(varnum))
 
-dat1 <- get_data(df, varnum, "V01", crit)
-dat5 <- get_data(df, varnum, "V05", crit)
+dat1 <- get_data(df, varnum, "V01", c("Responder","ARM"))
+dat5 <- get_data(df, varnum, "V09", c("Responder","ARM"))
 dat  <- dat5
 dat[,varnum] <- dat5[,varnum] - dat1[,varnum]
 
@@ -410,7 +373,7 @@ plot_pls(dat, varnum, crit)
 
 
 
-# Unorganized bits of script -----------------------------------------------------------
+# Unorganized bits of script ---------------------------------------------------------
 
 
 # Analyzing subject 90 "The PCA Outlier" -----------------------------------------------
