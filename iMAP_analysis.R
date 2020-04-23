@@ -66,9 +66,9 @@ get_cytometrie <- function(subjects = paper_subjects, panels = all_panels){
 }
 
 # Get Cytokine data
-get_cytokine <- function(){
-  file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2imp_20191022.csv"
-  df <- read.table(file_cytokine, header=TRUE, sep=",")
+get_cytokine <- function(file = file_cytokine){
+  
+  df <- read.table(file, header=TRUE, sep=",")
   
   # Extracting Subject id and visit id
   id <- as.vector(df[,"X"])
@@ -331,6 +331,9 @@ paper_subjects <- df_clini[df_clini[,"Paper"] == T,"Subject"]
 # Load Cytokine data -----------------------------------------------------------------
 
 # General Setup
+
+file_cytokine <- "Lupil2_cytokines_191105/lupil2_conc_log2imp_20191022.csv"
+
 df <- get_cytokine() %>%
       manage_HS()
 
@@ -358,7 +361,7 @@ lg_df <- make_long(df,c("Responder","ARM")) %>%
 
 #Set-up parameters
 pval.max <- 0.05/length(varnum)
-visit    <- "V05"
+visit    <- "V01"
 crit     <- c("Responder","ARM")
 cols     <- c("#FF3333", "#00CC00")
 
@@ -371,6 +374,10 @@ dat_IL2$ARM <- NULL
 dat_pcb <- dat[dat$ARM == "Placebo",]
 dat_pcb$ARM <- NULL          
 
+# PLS-DA
+plot_pls(dat_IL2,cols)
+plot_pls(dat_pcb,cols)
+
 #PCA
 pca_IL2 <- plot_pca(dat_IL2, cols)
 pca_pcb <- plot_pca(dat_pcb, cols)
@@ -380,25 +387,35 @@ pca_pcb <- plot_pca(dat_pcb, cols)
 plot_w.test(dat_IL2, 0.05, cols)
 plot_w.test(dat_pcb, 0.05, cols)
 
-plot_pls(dat_IL2)
+
 
 # Evolution from baseline ----------------------------------------------------------
 
 #Set-up parameters
-crit <- "ARM"
-cols <- c("#0066CC", "#99CCFF")
+visit <- "V05"
+crit  <- c("Responder","ARM")
+cols  <- c("#FF3333", "#00CC00")
 pval.max <- 0.05/(length(varnum))
 
-dat1 <- get_data(df, "V01", c("Responder","ARM"))
-dat5 <- get_data(df, "V09", c("Responder","ARM"))
-dat  <- dat_diff(dat5,dat1)
+dat0 <- get_data(df, "V01", crit)
+dat  <- get_data(df, "V29", crit) %>%
+        dat_diff(dat0)
+
+dat_IL2 <- dat[dat$ARM == "ILT-101",]
+dat_IL2$ARM <- NULL
+dat_pcb <- dat[dat$ARM == "Placebo",]
+dat_pcb$ARM <- NULL 
+
+#t.test and boxplot if pval < .05 / 62
+plot_w.test(dat_IL2, 0.05, cols)
+plot_w.test(dat_pcb, 0.05, cols)
+
 
 #PCA
 pca <- plot_pca(dat, varnum, crit, cols)
 
 
-#t.test and boxplot if pval < .05 / 62
-plot_t.test(dat, crit, pval.max, cols)
+
 
 
 #PLS
