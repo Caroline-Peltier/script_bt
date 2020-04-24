@@ -1,4 +1,4 @@
-# iMAP Analysis // Bosco TADDEI
+# iMAP Analysis Functions // Bosco TADDEI
 
 # This script is analyzing cytokine and cytometric data
 # collected from patient treated for lupus.
@@ -149,18 +149,6 @@ manage_HS <- function(df){
   return(df)
 }
 
-#Remove cols that have var == 0
-drop_nul_var <- function(df){
-  
-  badcols <- df[,which(apply(df,2,var) == 0)] %>%
-             colnames()
-  print(paste("Zero variance cols removed :",badcols))
-  
-  df[,badcols] <- list(NULL)
-  
-  return(df)
-}
-
 
 # Analysis Functions -----------------------------------------------------------------
 
@@ -189,6 +177,18 @@ dat_diff <- function(dat1, dat2){
   
   return(dat)
   
+}
+
+#Remove cols that have var == 0
+drop_nul_var <- function(df){
+  
+  badcols <- df[,which(apply(df,2,var) == 0)] %>%
+             colnames()
+  print(paste("Zero variance cols removed :",badcols))
+  
+  df[,badcols] <- list(NULL)
+  
+  return(df)
 }
 
 #PCA
