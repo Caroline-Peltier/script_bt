@@ -260,13 +260,18 @@ plot_t.test <- function(dat, pval.max, cols){
 }
 
 #Plot Wilcoxon test
-plot_w.test <- function(dat, pval.max, cols){
+plot_w.test <- function(dat, pval.max = 0.05, bonferroni = TRUE, cols){
   
   varnum <- dat %>%
             drop_nul_var() %>%
             get_varnum()
   crit   <- get_crit(dat)
   y <- dat[,crit]
+  
+  if (bonferroni){
+    pval.max <- pval.max / length(varnum)
+  }
+  
   
   i <- 0
   vars <- c()
