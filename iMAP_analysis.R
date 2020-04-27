@@ -1,7 +1,7 @@
 # iMAP Analysis Functions // Bosco TADDEI
 
-# This script is analyzing cytokine and cytometric data
-# collected from patient treated for lupus.
+# This script is analyzing cytokine and cytometric data collected from patients
+# treated for lupus.
 
 
 # General Set-up Functions -----------------------------------------------------------
@@ -98,6 +98,7 @@ get_varnum <- function(df){
   return(varnum)
 }
 
+# Name of the columns with crit in a dat
 get_crit <- function(dat){
   
   crit <- dat %>%
@@ -121,7 +122,7 @@ make_long <- function(df,crits){
            arrange(Subject,Visit)
 }
 
-# Add panel info
+# Add panel info to long_df
 manage_panel <- function(lg_df){
   
   lg_df["Panel"]    <- lg_df$variable %>%
@@ -166,7 +167,7 @@ get_data <- function(df, visit, crit){
   return(dat)
 }
 
-#Compute the difference of 2 dat
+# Compute the difference of 2 dat
 dat_diff <- function(dat1, dat2){
   
   rows   <- intersect(rownames(dat1),rownames(dat2))
@@ -179,7 +180,7 @@ dat_diff <- function(dat1, dat2){
   
 }
 
-#Remove cols that have var == 0
+# Remove cols that have var == 0
 drop_nul_var <- function(df){
   
   badcols <- df[,which(apply(df,2,var) == 0)] %>%
@@ -191,7 +192,7 @@ drop_nul_var <- function(df){
   return(df)
 }
 
-#PCA
+# PCA
 plot_pca <- function(dat, cols, scale = TRUE){
   
   varnum <- get_varnum(dat)
@@ -259,7 +260,7 @@ plot_t.test <- function(dat, pval.max, cols){
   return(vars)
 }
 
-#Plot Wilcoxon test
+# Wilcoxon test
 plot_w.test <- function(dat, pval.max = 0.05, bonferroni = TRUE, cols){
   
   varnum <- dat %>%
@@ -300,7 +301,7 @@ plot_w.test <- function(dat, pval.max = 0.05, bonferroni = TRUE, cols){
   return(vars)
 }
 
-# PLS DA
+# PLS-DA
 plot_pls <- function(dat, cols = NULL, type = "both", compx = 1, n_mark = 10){
   
   varnum <- get_varnum(dat)
@@ -315,6 +316,3 @@ plot_pls <- function(dat, cols = NULL, type = "both", compx = 1, n_mark = 10){
   
   return(pls)
 }
-
-
-
